@@ -25,17 +25,18 @@ trainCsv$weather <- as.factor(trainCsv$weather)
 
 
 DataExplorer::plot_intro(trainCsv)
-corrPlot1 <- DataExplorer::plot_correlation(select(trainCsv, count, windspeed, humidity, atemp, temp))
+corrPlot1 <- DataExplorer::plot_correlation(select(trainCsv, count, windspeed, humidity, atemp, temp), theme_config = list(legend.position = "none"))
 DataExplorer::plot_bar(trainCsv)
-
+DataExplorer::plot_correlation(data = trainCsv,theme_config = list(legend.position = "none"))
 histPlot1 <- DataExplorer::plot_histogram(trainCsv)
-
+?plot_correlation
 DataExplorer::plot_missing(trainCsv)
 GGally::ggpairs(trainCsv)
 
 tempvCountPlot <- ggplot(data=trainCsv) +
   geom_point(mapping=aes(x=temp,y=count, color = season)) +
   geom_smooth(mapping=aes(x=temp,y=count, color = season),se=FALSE)
+
 
 weathervCountPlot <- ggplot(data=trainCsv) + 
   geom_boxplot(mapping=aes(x=weather,y=count))
