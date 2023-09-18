@@ -4,11 +4,13 @@ library(tidymodels)
 library(tidyverse)
 library(vroom)
 library(patchwork)
+library(poissonreg)
+library(pscl)
 
-
+#Calls test data
 testCsv <- vroom('test.csv')
 
-
+#Calls training data
 trainCsv <- vroom('train.csv') 
 
 ##Clean up the weather variables
@@ -45,12 +47,32 @@ bike_workflow <- workflow() %>%
 bike_predictions <- predict(bike_workflow, 
                             new_data = testCsv) # Use fit to predict
 
+##Poisson Regression in R
+pois_mod <- poisson_reg() %>% #Type of model
+  set_engine("glm") # GLM = generalized linear model
+
+bike_pois_workflow <- workflow() %>%
+add_recipe(my_recipe) %>%
+add_model(pois_mod) %>%
+fit(data = trainCsv) # Fit the workflow
+
+
+# Print the model summary
+
+bike_predictions <- predict(bike_pois_workflow,
+                            new_data=testCsv) # Use fit to predict
+
+
+##Caps the predictions at 0, makes datetime a character, and binds the data for submission
 cappedBikePred <- mutate(bike_predictions, .pred = ifelse(.pred < 0, 0, .pred))
 testCsvBind <- read_csv("test.csv", col_types=c(datetime="character"))
-head(testCsvBind)
 sampleSub1 <- cbind(testCsvBind$datetime,cappedBikePred)
 sampleSub1 <- rename(sampleSub1,datetime = 'testCsvBind$datetime', count=.pred)
 
-head(sampleSub1)
 
+#Writes it into a csv file
 write_csv(sampleSub1, "linearRegKaggleSubmission.csv")
+
+write_csv(sampleSub1, "poissonRegKaggleSubmission.csv")
+
+
