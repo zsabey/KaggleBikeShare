@@ -41,6 +41,7 @@ tempvCountPlot <- ggplot(data=trainCsv) +
 
 weathervCountPlot <- ggplot(data=trainCsv) + 
   geom_boxplot(mapping=aes(x=weather,y=count))
+weathervCountPlot
 
 (corrPlot1 + histPlot1) / (tempvCountPlot + weathervCountPlot)
 
