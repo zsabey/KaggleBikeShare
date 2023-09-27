@@ -3,7 +3,6 @@
 library(tidymodels)
 library(tidyverse)
 library(vroom)
-library(patchwork)
 library(poissonreg)
 library(glmnet)
 
@@ -73,9 +72,9 @@ bike_predictions <- predict(bike_pois_workflow,
 # Penalized regression model
 preg_model <- poisson_reg(penalty=4, mixture=0) %>% #Set model and tuning
   set_engine("glmnet") # Function to fit in R
-preg_wf <- workflow() %>%
-add_recipe(my_recipe) %>%
-add_model(preg_model) %>%
+  preg_wf <- workflow() %>%
+  add_recipe(my_recipe) %>%
+  add_model(preg_model) %>%
 fit(data=trainCsv)
 bike_predictions <- predict(preg_wf, new_data=testCsv)
 
@@ -103,7 +102,6 @@ rf_wf <- workflow() %>%
 bike_predictions <- predict(rf_wf, new_data=testCsv)
 
 ##Caps the predictions at 0, makes datetime a character, and binds the data for submission
-#expBikePred <- mutate(bike_predictions, .pred = exp(.pred))
 cappedBikePred <- mutate(bike_predictions, .pred = ifelse(.pred < 0, 0, .pred))
 testCsvBind <- read_csv("test.csv", col_types=c(datetime="character"))
 sampleSub1 <- cbind(testCsvBind$datetime,cappedBikePred)
@@ -117,8 +115,8 @@ sampleSub1 <- rename(sampleSub1,datetime = 'testCsvBind$datetime', count=.pred) 
 
 #write_csv(sampleSub1, "poissonRegKaggleSubmission.csv")
 
-#write_csv(sampleSub1, "pRegKaggleSubmission.csv")
+write_csv(sampleSub1, "pRegKaggleSubmission.csv")
 
-write_csv(sampleSub1, "baggRegKaggleSubmission.csv")
+#write_csv(sampleSub1, "baggRegKaggleSubmission.csv")
 
 #write_csv(sampleSub1, "rfRegKaggleSubmission.csv")
