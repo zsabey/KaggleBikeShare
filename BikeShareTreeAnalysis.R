@@ -97,7 +97,7 @@ tree_wf <- workflow() %>%
 
 bike_predictions <- predict(tree_wf, new_data=testCsv)
 
-##Random Forest model
+##Random Forest modele
 
 rf_spec <-rand_forest(trees = 1e3) %>%
   set_engine("ranger") %>% 
