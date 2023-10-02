@@ -14,10 +14,10 @@ trainCsv <- vroom('train.csv')
 ##Clean up the weather variables
 ##Changed the singular value of weather = 4 to weather = 3
 trainCsv <- mutate(trainCsv, count = log(count), weather = ifelse(trainCsv$weather == 4, 3,trainCsv$weather)) %>%
-  select(-casual,-registered)
+  select(-casual,-registered,-temp)
 
-testCsv <- mutate(testCsv, weather = ifelse(weather == 4, 3,weather )) #%>%
-#select(-temp)
+testCsv <- mutate(testCsv, weather = ifelse(weather == 4, 3,weather )) %>%
+  select(-temp)
 
 
 
@@ -97,18 +97,58 @@ tree_wf <- workflow() %>%
 
 bike_predictions <- predict(tree_wf, new_data=testCsv)
 
-##Random Forest modele
+##Random Forest model
 
-rf_spec <-rand_forest(trees = 1e3) %>%
+rf_spec <-rand_forest(mtry= tune(),
+                      min_n= tune(), 
+                      trees = 1e3) %>%
   set_engine("ranger") %>% 
   set_mode("regression")
 
 rf_wf <- workflow() %>%
   add_recipe(my_recipe) %>%
-  add_model(rf_spec) %>%
+  add_model(rf_spec) #%>%
+  #fit(data=trainCsv)
+
+#bike_predictions <- predict(rf_wf, new_data=testCsv)
+
+## Grid of values to tune over
+tuning_grid <- grid_regular(mtry(range=c(30,34)),
+                            min_n(),
+                            levels = 3) ## L^2 total tuning possibilities
+
+## Split data for CV
+folds <- vfold_cv(trainCsv, v = 5, repeats=1)
+
+
+## Run the CV
+CV_results <- rf_wf %>%
+  tune_grid(resamples=folds,
+            grid=tuning_grid,
+            metrics=metric_set(rmse, mae, rsq)) #Or leave metrics NULL
+
+## Plot Results (example)
+collect_metrics(CV_results) %>% # Gathers metrics into DF
+  filter(.metric=="rmse") %>%
+  ggplot(data=., aes(x=penalty, y=mean, color=factor(mixture))) +
+  geom_line()
+
+
+## Find Best Tuning Parameters
+bestTune <- CV_results %>%
+  select_best("rmse")
+bestTune
+
+#mtry = 10, min_n = 2
+#30 21
+
+## Finalize the Workflow & fit it
+final_wf <- rf_wf %>%
+  finalize_workflow(bestTune) %>%
   fit(data=trainCsv)
 
-bike_predictions <- predict(rf_wf, new_data=testCsv)
+bike_predictions <- final_wf %>%
+  predict(new_data = testCsv)
 
 ##Caps the predictions at 0, makes datetime a character, and binds the data for submission
 cappedBikePred <- mutate(bike_predictions, .pred = ifelse(.pred < 0, 0, .pred))
@@ -121,9 +161,10 @@ sampleSub1 <- rename(sampleSub1,datetime = 'testCsvBind$datetime', count=.pred) 
 
 #Writes it into a csv file
 
-write_csv(sampleSub1, "dTreeKaggleSubmission.csv")
+#write_csv(sampleSub1, "dTreeKaggleSubmission.csv")
 
 #write_csv(sampleSub1, "baggRegKaggleSubmission.csv")
 
-#write_csv(sampleSub1, "rfRegKaggleSubmission.csv")
+write_csv(sampleSub1, "rfRegKaggleSubmission.csv")
+
 

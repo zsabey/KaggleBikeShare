@@ -35,12 +35,14 @@ DataExplorer::plot_missing(trainCsv)
 GGally::ggpairs(trainCsv)
 
 tempvCountPlot <- ggplot(data=trainCsv) +
-  geom_point(mapping=aes(x=temp,y=count, color = season)) +
-  geom_smooth(mapping=aes(x=temp,y=count, color = season),se=FALSE)
+  geom_point(mapping=aes(x=temp,y=log(count))) +
+  geom_smooth(mapping=aes(x=temp,y=log(count)), se=FALSE)
+
+tempvCountPlot
 
 
 weathervCountPlot <- ggplot(data=trainCsv) + 
-  geom_boxplot(mapping=aes(x=weather,y=count))
+  geom_boxplot(mapping=aes(x=weather,y=log(count)))
 weathervCountPlot
 
 (corrPlot1 + histPlot1) / (tempvCountPlot + weathervCountPlot)
