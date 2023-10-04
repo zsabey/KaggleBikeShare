@@ -25,12 +25,12 @@ trainCsv$weather <- as.factor(trainCsv$weather)
 
 
 DataExplorer::plot_intro(trainCsv)
+
 corrPlot1 <- DataExplorer::plot_correlation(select(trainCsv, count, windspeed, humidity, atemp, temp), theme_config = list(legend.position = "none"))
 
 DataExplorer::plot_bar(trainCsv)
 DataExplorer::plot_correlation(data = trainCsv,theme_config = list(legend.position = "none"))
 histPlot1 <- DataExplorer::plot_histogram(trainCsv)
-?plot_correlation
 DataExplorer::plot_missing(trainCsv)
 GGally::ggpairs(trainCsv)
 

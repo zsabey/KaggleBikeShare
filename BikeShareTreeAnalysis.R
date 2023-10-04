@@ -25,13 +25,19 @@ testCsv <- mutate(testCsv, weather = ifelse(weather == 4, 3,weather )) %>%
 ##Changed variables to factors, added an hour variable, and selected 
 ##for all variables except casual and registered
 my_recipe <- recipe(count ~., data=trainCsv) %>% 
+  step_date(datetime,features =c("year")) %>%
   step_time(datetime,features = c("hour"),keep_original_cols = F) %>%
   step_mutate(season=as.factor(season), 
               holiday=as.factor(holiday),
               weather = as.factor(weather),
+              year = as.factor(datetime_year),
               hour = as.factor(datetime_hour),
               workingday = as.factor(workingday)) %>%
-  step_dummy(all_nominal_predictors()) %>% #make dummy variables
+  step_dummy(all_nominal_predictors()) %>%
+  step_mutate(int2_6 = hour_X18 * season_X2,
+              int3_6 = hour_X18 * season_X3,
+              int4_6 = hour_X18 * season_X4,
+              ) %>% #make dummy variables
   step_normalize(all_numeric_predictors()) # Make mean 0, sd=1
 
 prepped_recipe <- prep(my_recipe)
@@ -99,23 +105,23 @@ bike_predictions <- predict(tree_wf, new_data=testCsv)
 
 ##Random Forest model
 
-rf_spec <-rand_forest(mtry= tune(),
-                      min_n= tune(), 
-                      trees = 1e3) %>%
+rf_spec <-rand_forest(mtry= 30,
+                      min_n= 21, 
+                      trees = 1000) %>%
   set_engine("ranger") %>% 
   set_mode("regression")
 
 rf_wf <- workflow() %>%
   add_recipe(my_recipe) %>%
-  add_model(rf_spec) #%>%
-  #fit(data=trainCsv)
+  add_model(rf_spec) %>%
+  fit(data=trainCsv)
 
-#bike_predictions <- predict(rf_wf, new_data=testCsv)
+bike_predictions <- predict(rf_wf, new_data=testCsv)
 
 ## Grid of values to tune over
-tuning_grid <- grid_regular(mtry(range=c(30,34)),
+tuning_grid <- grid_regular(#mtry(range=c(30,34)),
                             min_n(),
-                            levels = 3) ## L^2 total tuning possibilities
+                            levels = 10) ## L^2 total tuning possibilities
 
 ## Split data for CV
 folds <- vfold_cv(trainCsv, v = 5, repeats=1)
@@ -125,7 +131,7 @@ folds <- vfold_cv(trainCsv, v = 5, repeats=1)
 CV_results <- rf_wf %>%
   tune_grid(resamples=folds,
             grid=tuning_grid,
-            metrics=metric_set(rmse, mae, rsq)) #Or leave metrics NULL
+            metrics=metric_set(rmse)) #Or leave metrics NULL
 
 ## Plot Results (example)
 collect_metrics(CV_results) %>% # Gathers metrics into DF
